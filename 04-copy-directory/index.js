@@ -3,14 +3,6 @@ const path = require('path');
 const { stdout } = process;
 
 const copyDir = (origin, copy) => {
-  fsPr.mkdir(path.join(__dirname, copy), { recursive: true })
-  .then(result => {
-    if (result) {
-      stdout.write(`Copy folder successfully created`);
-    } else stdout.write('Copy folder successfully updated');
-  })
-  .catch(err => console.log(err.message));
-
   const root = __dirname;
   const folderNames = [origin];
   const copyFolderNames = [copy];
@@ -33,7 +25,24 @@ const copyDir = (origin, copy) => {
       }))
       .catch(err => console.log(err.message));
   }
-  copyFolder(folderNames, copyFolderNames);
+
+  fsPr.mkdir(path.join(__dirname, copy), { recursive: true })
+  .then(result => {
+    if (result) {
+      copyFolder(folderNames, copyFolderNames);
+      stdout.write(`Copy folder successfully created`);
+    } else {
+      fsPr.rm(path.join(__dirname, copy), { recursive: true, force: true })
+        .then(() => {
+          fsPr.mkdir(path.join(__dirname, copy), { recursive: true })
+            .then(() => copyFolder(folderNames, copyFolderNames))
+            .catch(err => console.log(err.message));
+        })
+        .catch(err => console.log(err.message));
+      stdout.write('Copy folder successfully updated');
+    };
+  })
+  .catch(err => console.log(err.message));
 }
 
 copyDir('files', 'files-copy');
