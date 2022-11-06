@@ -7,7 +7,7 @@ const copyDir = (origin, copy) => {
   const folderNames = [origin];
   const copyFolderNames = [copy];
   
-  function copyItem(item, folderNames, copyFolderNames, onCopy){
+  const copyItem = (item, folderNames, copyFolderNames, onCopy) => {
     fsPr.copyFile(path.join(root, ...folderNames, item.name), path.join(root, ...copyFolderNames, item.name))
       .catch(err => console.log(err.message));
     onCopy();
