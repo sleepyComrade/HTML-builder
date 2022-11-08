@@ -8,7 +8,7 @@ const buildProject = (distName) => {
   const root = __dirname;
   const dist = path.join(root, distName);
   const components = [];
-  const datum = [];
+  const compList = [];
 
   const copyDir = (origin, copy, onEnd) => {
     const root = __dirname;
@@ -119,18 +119,21 @@ const buildProject = (distName) => {
   const handleFile = (current, onResume) => {
     const ext = path.extname(path.join(root, 'components', current.name));
     if (current.isFile() && ext === '.html') {
+      const compData = {};
       const name = path.basename(path.join(root, 'components', current.name), ext);
       components.push(`{{${name}}}`);
+      compData.name = `{{${name}}}`;
       const stream = fs.createReadStream(path.join(root, 'components', current.name), 'utf-8');
       stream.on('error', () => console.log(err.message));
       stream.on('data', data => {
-        datum.push(data);
+        compData.comp = data;
+        compList.push(compData);
       })
     }
     onResume();
   }
 
-  const writeLayout = (components, datum, onEnd) => {
+  const writeLayout = (components, compList, onEnd) => {
     const read = fs.createReadStream(path.join(root, 'template.html'), 'utf-8');
     const write = fs.createWriteStream(path.join(dist, 'index.html'));
     const rl = readline.createInterface({
@@ -143,8 +146,12 @@ const buildProject = (distName) => {
       if (components.includes(data.trim())) {
         const spaces = data.length - data.trim().length;
         const indent = new Array(spaces).fill(' ').join('');
-        const i = components.indexOf(data.trim());
-        const comp = datum[i].split('\n').join(`\n${indent}`);
+        let comp;
+        compList.forEach(el => {
+          if (el.name === data.trim()) {
+            comp = el.comp.split('\n').join(`\n${indent}`);
+          }
+        })
         write.write(indent + comp + '\n');
       } else {
         write.write(data + '\n');
@@ -166,14 +173,17 @@ const buildProject = (distName) => {
       const current = data.shift();
       const ext = path.extname(path.join(root, 'components', current.name));
       if (current.isFile() && ext === '.html') {
+        const compData = {};
         const name = path.basename(path.join(root, 'components', current.name), ext);
         components.push(`{{${name}}}`);
+        compData.name = `{{${name}}}`;
         const stream = fs.createReadStream(path.join(root, 'components', current.name), 'utf-8');
         stream.on('data', data => {
-          datum.push(data);
+          compData.comp = data;
+          compList.push(compData);
         })
         stream.on('end', () => {
-          writeLayout(components, datum, onEnd);
+          writeLayout(components, compList, onEnd);
         })
       }
     }
